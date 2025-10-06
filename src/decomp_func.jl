@@ -3,9 +3,9 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    λbar = 10 * sum(values(probData.Q));
+    λbar = 100 * sum(values(probData.Q));
     # build the relaxed master problem here
-    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
+    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(mp, x[i in NCP] >= x0[i]); # charger capacity
     @variable(mp, u[i in NCP], Bin); # charger installation indicator
     @variable(mp, V >= 0); # worst-case second-stage cost
@@ -82,7 +82,7 @@ function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, π
     J = probData.J;
     T = 1:probData.T;
     # build the relaxed master problem here
-    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
+    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(mp, x[i in NCP] >= x0[i]); # charger capacity
     @variable(mp, u[i in NCP], Bin); # charger installation indicator
     @variable(mp, V >= 0); # worst-case second-stage cost
@@ -370,7 +370,7 @@ function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e3)
     J = probData.J;
     T = 1:probData.T;
 
-    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 1, "TimeLimit" => 600));
+    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 1, "TimeLimit" => 600, "Threads" => 10));
     @variable(sp, πP[i in probData.IDList, t in T]); # dual variable for active power balance
     @variable(sp, πPu[i in probData.IDList, t in T] <= 0); # dual variable for active power upper bound
     @variable(sp, πPl[i in probData.IDList, t in T] >= 0); # dual variable for active power lower bound
@@ -415,7 +415,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
     iter_bool = true;
     sp_lblist = [];
 
-    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
+    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(sp, πP[i in probData.IDList, t in T]); # dual variable for active power balance
     @variable(sp, πPu[i in probData.IDList, t in T] <= 0); # dual variable for active power upper bound
     @variable(sp, πPl[i in probData.IDList, t in T] >= 0); # dual variable for active power lower bound
