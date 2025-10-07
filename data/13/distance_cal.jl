@@ -17,7 +17,12 @@ coordinate_list_j = [(-300, 3000),
                      (400, 2500),
                      (-500, 1000),
                      (-200, -800),
-                     (400, -300)];
+                     (400, -300),
+                     (0, -1100),
+                     (-1000, 200),
+                     (800,3800),
+                     (700,400),
+                     (500,1500)];
 distance_ij = zeros(length(coordinate_list_i), length(coordinate_list_j));
 for i in eachindex(coordinate_list_i)
     for j in eachindex(coordinate_list_j)
@@ -26,4 +31,4 @@ for i in eachindex(coordinate_list_i)
     end
 end
 df = DataFrame(distance_ij, :auto);
-CSV.write("./data/13/case13_rdis.csv",df);
+CSV.write("./data/13/case13_rdis_new.csv",df);

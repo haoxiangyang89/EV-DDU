@@ -45,7 +45,7 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
             # add the λ constraints
             @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], λQ[k,j,t] + λu[k,i,j,t] + sum(λqu[k,br[1],br[2],j,t] + λql[k,br[1],br[2],j,t] for br in probData.brList if br[1] == i) - 
                             sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
-                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t],
+                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
                             container = SparseAxisArray);
 
             # add the λ-u logic constraints
@@ -113,7 +113,7 @@ function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, π
             # add the λ constraints
             @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], λQ[k,j,t] + λu[k,i,j,t] + sum(λqu[k,br[1],br[2],j,t] + λql[k,br[1],br[2],j,t] for br in probData.brList if br[1] == i) - 
                             sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
-                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t],
+                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
                             container = SparseAxisArray);
         end
     end
@@ -164,7 +164,7 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e3)
                 for t in T
                     mp[:λ_constr][k,i,j,t] = @constraint(mp, mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
                                 sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t]);
+                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
                     # add McCormick envelopes for bilinear terms
                     mp[:uλu_constr1][k,i,j,t] = @constraint(mp, mp[:uλu][k,i,j,t] <= λbar * mp[:u][i]);
                     mp[:uλu_constr2][k,i,j,t] = @constraint(mp, mp[:uλu][k,i,j,t] <= mp[:λu][k,i,j,t]);
@@ -224,7 +224,7 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e3)
         # add the λ constraints
         @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] == i)&(br[1] in NCP)&(br[2] in NCP)) - 
                         sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t], container = SparseAxisArray);
+                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
         
         # add the λ-u logic constraints
         @constraint(mp, λqu_logic_constr1[k in K, i in NCP, ip in NCP, j in J, t in T; ((i, ip) in probData.brList)&(i in NCP)&(ip in NCP)], mp[:λqu][k,i,ip,j,t] <= M * mp[:u][i], container = SparseAxisArray);
@@ -345,7 +345,7 @@ function build_separation_local(probData, ρ, Delta, xhat, uhat, M = 1e3)
     @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
                                 sum(πd[i,t] * xhat[i] for i in NCP)) + 
                                 sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
-                                sum(sum(q[i,j,t] for j in J) * πq[i,t] for i in NCP) for t in T));
+                                sum(sum(q[i,j,t] for j in J) * πq[i,t] + sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
 
     # add the constraints
     @constraint(sp, d_constr[i in NCP, t in T], πq[i,t] + πd[i,t] - πP[i,t] <= 0);
@@ -387,7 +387,7 @@ function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e3)
     @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
                                 sum(πd[i,t] * xhat[i] for i in NCP)) + 
                                 sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
-                                sum(sum(q[i,j,t] for j in J) * πq[i,t] for i in NCP) for t in T));
+                                sum(sum(q[i,j,t] for j in J) * πq[i,t] + sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
 
     # add the constraints
     @constraint(sp, d_constr[i in NCP, t in T], πq[i,t] + πd[i,t] - πP[i,t] <= 0);
@@ -461,7 +461,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
                             M * (2 - uhat[br[1]] - uhat[br[2]]));
         @constraint(qp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
                             -M * (2 - uhat[br[1]] - uhat[br[2]]));
-        @objective(qp, Max, sum(sum(sum(q[i,j,t] for j in J) * πqhat[i,t] for i in NCP) for t in T));
+        @objective(qp, Max, sum(sum(sum(q[i,j,t] for j in J) * πqhat[i,t] for i in NCP) for t in T) + sum(sum(sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
         optimize!(qp);
         qsol = Dict();
         for i in NCP
@@ -484,7 +484,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
                 @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
                             sum(πd[i,t] * xhat[i] for i in NCP)) + 
                             sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
-                            sum(sum(popi[i,t,l] * sum(qList[l][i,j,t] for j in J) for l in 1:L) for i in NCP) for t in T));
+                            sum(sum(popi[i,t,l] * sum(qList[l][i,j,t] for j in J) + sum(qList[l][i,j,t] * po[l] * probData.cq[i,j] for j in J) for l in 1:L) for i in NCP) for t in T));
             else
                 sp[:po][L] = @variable(sp, binary = true, base_name = "po[$L]");
                 for i in NCP
@@ -505,7 +505,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
                 @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
                     sum(πd[i,t] * xhat[i] for i in NCP)) + 
                     sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
-                    sum(sum(sp[:popi][i,t,l] * sum(qList[l][i,j,t] for j in J) for l in 1:L) for i in NCP) for t in T));
+                    sum(sum(sp[:popi][i,t,l] * sum(qList[l][i,j,t] for j in J) + sum(qList[l][i,j,t] * sp[:po][l] * probData.cq[i,j] for j in J) for l in 1:L) for i in NCP) for t in T));
             end
         else
             iter_bool = false;
@@ -621,4 +621,34 @@ function colGen(probData, f, c, xbar, x0, u0, ρ, Delta, ϵ = 1e-4, master_optio
         println("Current LB: $LB, Current UB: $UB, Gap: $((UB - LB)/LB), Iteration Time: $(iter_elapse)");
     end
     return xbest, ubest, UBList, LBList, timeList;
+end
+
+function solve_h(probData, xhat, qhat)
+    # solve for the h function value in the primal problem form
+    NCP = probData.NCP;
+    J = probData.J;
+    T = 1:probData.T;
+
+    hsp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
+    # set up the variables
+    @variable(hsp, probData.Plb[i] <= P[i in probData.IDList, t in T] <= probData.Pub[i]); # active power generation
+    @variable(hsp, -probData.Wbar[br] <= W[br in probData.brList, t in T] <= probData.Wbar[br]); # branch flow
+    @variable(hsp, θ[i in probData.IDList, t in T]); # voltage angle
+    @variable(hsp, d[i in NCP, t in T] >= 0); # EV satisfied demand
+    @variable(hsp, s[i in NCP, t in T] >= 0); # EV unsatisfied demand
+
+    # set up the constraints
+    @constraint(hsp, EV_demand[i in NCP, t in T], d[i,t] + s[i,t] == sum(qhat[i,j,t] for j in J));
+    @constraint(hsp, EV_demand_limit[i in NCP, t in T], d[i,t] <= xhat[i]);
+    @constraint(hsp, DC_flow[br in probData.brList, t in T], W[br,t] == probData.b[br] * (θ[br[1],t] - θ[br[2],t]));
+    @constraint(hsp, flow_balance_NEV[i in probData.IDList, t in T; !(i in NCP)], P[i,t] + sum(W[br,t] for br in probData.brList if br[2] == i) - sum(W[br,t] for br in probData.brList if br[1] == i) == probData.D[i,t]);
+    @constraint(hsp, flow_balance_EV[i in NCP, t in T], P[i,t] + sum(W[br,t] for br in probData.brList if br[2] == i) - sum(W[br,t] for br in probData.brList if br[1] == i) == probData.D[i,t] + d[i,t]);
+    @constraint(hsp, theta_limit[br in probData.brList, t in T], -probData.θdiff[br[1],br[2]] <= θ[br[1],t] - θ[br[2],t] <= probData.θdiff[br[1],br[2]]);
+    @constraint(hsp, ref_angle[t in T], θ[7, t] == 0);
+
+    # set up the objective function
+    @objective(hsp, Min, sum(sum(probData.g[i] * P[i,t] for i in probData.IDList) + sum(ρ * s[i,t] for i in NCP) for t in T));
+    @expression(hsp, generation_cost, sum(sum(probData.g[i] * P[i,t] for i in probData.IDList) for t in T));
+    @expression(hsp, unsat_cost, sum(sum(ρ * s[i,t] for i in NCP) for t in T));
+    return hsp;
 end

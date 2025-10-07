@@ -148,4 +148,5 @@ struct DDUdata
     θdiff :: Dict{Any,Any}
     b :: Dict{Any,Any}
     g :: Dict{Any,Any}
+    cq :: Dict{Any,Any}
 end
