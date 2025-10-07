@@ -414,6 +414,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
     qList = [];
     iter_bool = true;
     sp_lblist = [];
+    πList = [];
 
     sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(sp, πP[i in probData.IDList, t in T]); # dual variable for active power balance
@@ -452,26 +453,29 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
             end
         end
 
-        # solve q problem to generate a slope for πq
-        qp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
-        @variable(qp, q[i in NCP, j in J, t in T] >= 0); # EV demand
-        @constraint(qp, Q_constr[j in J, t in T], sum(q[i,j,t] for i in NCP) == probData.Q[j,t]);
-        @constraint(qp, q_constr[i in NCP, j in J, t in T], q[i,j,t] <= probData.Q[j,t] * uhat[i]);
-        @constraint(qp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j,t] <= 
-                            M * (2 - uhat[br[1]] - uhat[br[2]]));
-        @constraint(qp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
-                            -M * (2 - uhat[br[1]] - uhat[br[2]]));
-        @objective(qp, Max, sum(sum(sum(q[i,j,t] for j in J) * πqhat[i,t] for i in NCP) for t in T) + sum(sum(sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
-        optimize!(qp);
-        qsol = Dict();
-        for i in NCP
-            for j in J
-                for t in T
-                    qsol[i,j,t] = value(qp[:q][i,j,t]);
+        if πqhat in πList
+            iter_bool = false;
+        else
+            push!(πList, πqhat);
+            # solve q problem to generate a slope for πq
+            qp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
+            @variable(qp, q[i in NCP, j in J, t in T] >= 0); # EV demand
+            @constraint(qp, Q_constr[j in J, t in T], sum(q[i,j,t] for i in NCP) == probData.Q[j,t]);
+            @constraint(qp, q_constr[i in NCP, j in J, t in T], q[i,j,t] <= probData.Q[j,t] * uhat[i]);
+            @constraint(qp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j,t] <= 
+                                M * (2 - uhat[br[1]] - uhat[br[2]]));
+            @constraint(qp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
+                                -M * (2 - uhat[br[1]] - uhat[br[2]]));
+            @objective(qp, Max, sum(sum(sum(q[i,j,t] for j in J) * πqhat[i,t] for i in NCP) for t in T) + sum(sum(sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
+            optimize!(qp);
+            qsol = Dict();
+            for i in NCP
+                for j in J
+                    for t in T
+                        qsol[i,j,t] = value(qp[:q][i,j,t]);
+                    end
                 end
             end
-        end
-        if !(qsol in qList)
             push!(qList, qsol);
             L = length(qList);
             if L == 1
@@ -507,8 +511,6 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
                     sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
                     sum(sum(sp[:popi][i,t,l] * sum(qList[l][i,j,t] for j in J) + sum(qList[l][i,j,t] * sp[:po][l] * probData.cq[i,j] for j in J) for l in 1:L) for i in NCP) for t in T));
             end
-        else
-            iter_bool = false;
         end
     end
 
