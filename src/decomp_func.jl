@@ -1,9 +1,9 @@
 # main script to run column generation algorithm for EV_DDU
-function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M = 1e3)
+function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M = 1e4)
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    λbar = 100 * sum(values(probData.Q));
+    λbar = 1000 * sum(values(probData.Q));
     # build the relaxed master problem here
     mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(mp, x[i in NCP] >= x0[i]); # charger capacity
@@ -77,7 +77,7 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
     return mp;
 end
 
-function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, πList, M = 1e3)
+function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, πList, M = 1e4)
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
@@ -517,6 +517,86 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
     return sp;
 end
 
+function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1e3)
+    # solve smaller decomposed bilinear optimization model for the separation problem
+    # build the separation problem here
+    NCP = probData.NCP;
+    J = probData.J;
+    T = 1:probData.T;
+    qhat = Dict();
+
+    for t in T
+        spt = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "TimeLimit" => 600, "Threads" => 10));
+        @variable(spt, πP[i in probData.IDList]); # dual variable for active power balance
+        @variable(spt, πPu[i in probData.IDList] <= 0); # dual variable for active power upper bound
+        @variable(spt, πPl[i in probData.IDList] >= 0); # dual variable for active power lower bound
+        @variable(spt, πq[i in NCP]); # dual variable for EV demand balance
+        @variable(spt, πd[i in NCP] <= 0); # dual variable for EV demand upper bound
+        @variable(spt, πW[br in probData.brList]); # dual variable for branch flow equation
+        @variable(spt, πWu[br in probData.brList] <= 0); # dual variable for branch flow upper bound
+        @variable(spt, πWl[br in probData.brList] >= 0); # dual variable for branch flow lower bound
+        @variable(spt, πθu[br in probData.brList] <= 0); # dual variable for angle difference upper bound
+        @variable(spt, πθl[br in probData.brList] >= 0); # dual variable for angle difference lower bound
+        @variable(spt, q[i in NCP, j in J] >= 0); # EV demand
+
+        # objective function
+        @objective(spt, Max, (sum(D[i,t] * πP[i] + probData.Pub[i] * πPu[i] + probData.Plb[i] * πPl[i] for i in probData.IDList) + 
+                                sum(πd[i] * xhat[i] for i in NCP)) + 
+                                sum((πWu[br] - πWl[br]) * probData.Wbar[br[1],br[2]] + (πθu[br] - πθl[br]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
+                                sum(sum(q[i,j] for j in J) * πq[i] + sum(probData.cq[i,j] * q[i,j] for j in J) for i in NCP));
+
+        # add the constraints
+        @constraint(spt, d_constr[i in NCP], πq[i] + πd[i] - πP[i] <= 0);
+        @constraint(spt, s_constr[i in NCP], πq[i] <= ρ);
+        @constraint(spt, theta_constr[i in probData.IDList], sum(πθu[br] + πθl[br] - probData.b[br] * πW[br] for br in probData.brList if br[1] == i) - 
+                            sum(πθu[br] + πθl[br] - probData.b[br] * πW[br] for br in probData.brList if br[2] == i) == 0);
+        @constraint(spt, W_constr[br in probData.brList], πW[br] + πWu[br] + πWl[br] + πP[br[2]] - πP[br[1]] == 0);
+        @constraint(spt, P_constr[i in probData.IDList], πP[i] + πPu[i] + πPl[i] == probData.g[i]);
+        @constraint(spt, Q_constr[j in J], sum(q[i,j] for i in NCP) == probData.Q[j,t]);
+        @constraint(spt, q_constr[i in NCP, j in J], q[i,j] <= probData.Q[j,t] * uhat[i]);
+        @constraint(spt, qu_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j] <= 
+                            M * (2 - uhat[br[1]] - uhat[br[2]]));
+        @constraint(spt, ql_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j] >= 
+                            -M * (2 - uhat[br[1]] - uhat[br[2]]));
+        optimize!(spt);
+
+        # obtain qhat
+        for i in NCP
+            for j in J
+                qhat[i,j,t] = value(spt[:q][i,j]);
+            end
+        end
+    end
+
+    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "TimeLimit" => 600, "Threads" => 10));
+    @variable(sp, πP[i in probData.IDList, t in T]); # dual variable for active power balance
+    @variable(sp, πPu[i in probData.IDList, t in T] <= 0); # dual variable for active power upper bound
+    @variable(sp, πPl[i in probData.IDList, t in T] >= 0); # dual variable for active power lower bound
+    @variable(sp, πq[i in NCP, t in T]); # dual variable for EV demand balance
+    @variable(sp, πd[i in NCP, t in T] <= 0); # dual variable for EV demand upper bound
+    @variable(sp, πW[br in probData.brList, t in T]); # dual variable for branch flow equation
+    @variable(sp, πWu[br in probData.brList, t in T] <= 0); # dual variable for branch flow upper bound
+    @variable(sp, πWl[br in probData.brList, t in T] >= 0); # dual variable for branch flow lower bound
+    @variable(sp, πθu[br in probData.brList, t in T] <= 0); # dual variable for angle difference upper bound
+    @variable(sp, πθl[br in probData.brList, t in T] >= 0); # dual variable for angle difference lower bound
+
+    # objective function
+    @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
+                                sum(πd[i,t] * xhat[i] for i in NCP)) + 
+                                sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
+                                sum(sum(qhat[i,j,t] for j in J) * πq[i,t] for i in NCP) for t in T));
+
+    # add the constraints
+    @constraint(sp, d_constr[i in NCP, t in T], πq[i,t] + πd[i,t] - πP[i,t] <= 0);
+    @constraint(sp, s_constr[i in NCP, t in T], πq[i,t] <= ρ);
+    @constraint(sp, theta_constr[i in probData.IDList, t in T], sum(πθu[br,t] + πθl[br,t] - probData.b[br] * πW[br,t] for br in probData.brList if br[1] == i) - 
+                        sum(πθu[br,t] + πθl[br,t] - probData.b[br] * πW[br,t] for br in probData.brList if br[2] == i) == 0);
+    @constraint(sp, W_constr[br in probData.brList, t in T], πW[br,t] + πWu[br,t] + πWl[br,t] + πP[br[2],t] - πP[br[1],t] == 0);
+    @constraint(sp, P_constr[i in probData.IDList, t in T], πP[i,t] + πPu[i,t] + πPl[i,t] == probData.g[i]);
+    
+    return sp;
+end
+
 function colGen(probData, f, c, xbar, x0, u0, ρ, Delta, ϵ = 1e-4, master_option = "linear", separation_option = "piecewise", time_limit = 3600)
     UB = Inf; 
     LB = 0;
@@ -556,6 +636,8 @@ function colGen(probData, f, c, xbar, x0, u0, ρ, Delta, ϵ = 1e-4, master_optio
             sp = build_separation_bilinear(probData, ρ, Delta, xhat, uhat);
         elseif separation_option == "bilinear_local"
             sp = build_separation_local(probData, ρ, Delta, xhat, uhat);
+        elseif separation_option == "bilinear_decomp"
+            sp = build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat);
         else
             sp = build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat);
         end

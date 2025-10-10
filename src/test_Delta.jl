@@ -115,6 +115,6 @@ uhat_Dict = Dict();
 
 for Δmulti in [0,2,3,4,5,6,7,8,9]
     Delta = 0.1 * Δmulti;
-    xhat_Dict[Delta], uhat_Dict[Delta], UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "piecewise");
+    xhat_Dict[Delta], uhat_Dict[Delta], UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_decomp");
 end
 save("./result/$(caseList[ci])_Delta_result.jld", "xhat_Dict", xhat_Dict, "uhat_Dict", uhat_Dict);
