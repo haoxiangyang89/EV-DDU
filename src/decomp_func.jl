@@ -3,7 +3,8 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    λbar = 1000 * sum(values(probData.Q));
+    # λbar = 1000 * sum(values(probData.Q));
+    λbar = M;
     # build the relaxed master problem here
     mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(mp, x[i in NCP] >= x0[i]); # charger capacity
@@ -120,11 +121,12 @@ function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, π
     return mp;
 end
 
-function addCol(mp, probData, Delta, π_add, K, k, M = 1e3)
+function addCol(mp, probData, Delta, π_add, K, k, M = 1e4)
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    λbar = 10 * sum(values(probData.Q));
+    # λbar = 10 * sum(values(probData.Q));
+    λbar = M;
 
     if k > 1
         # add a new column to the master problem here
@@ -254,7 +256,7 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e3)
     return mp;
 end
 
-function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e3)
+function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e4)
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
@@ -291,7 +293,7 @@ function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e3)
                 for t in T
                     mp[:λ_constr][k,i,j,t] = @constraint(mp, mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
                                 sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t]);
+                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
                 end
             end
         end
@@ -313,12 +315,12 @@ function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e3)
         # add the λ constraints
         @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
                         sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t], container = SparseAxisArray);
+                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
     end
     return mp;
 end
 
-function build_separation_local(probData, ρ, Delta, xhat, uhat, M = 1e3)
+function build_separation_local(probData, ρ, Delta, xhat, uhat, M = 1e4)
     # build the separation problem here
     NCP = probData.NCP;
     J = probData.J;
@@ -364,7 +366,7 @@ function build_separation_local(probData, ρ, Delta, xhat, uhat, M = 1e3)
     return sp;
 end
 
-function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e3)
+function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e4)
     # build the separation problem here
     NCP = probData.NCP;
     J = probData.J;
@@ -406,7 +408,7 @@ function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e3)
     return sp;
 end
 
-function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e3)
+function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e4)
     # build the separation problem here
     NCP = probData.NCP;
     J = probData.J;
@@ -517,7 +519,7 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
     return sp;
 end
 
-function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1e3)
+function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1e4, outputOption = 0)
     # solve smaller decomposed bilinear optimization model for the separation problem
     # build the separation problem here
     NCP = probData.NCP;
@@ -584,7 +586,7 @@ function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1
     @objective(sp, Max, sum((sum(D[i,t] * πP[i,t] + probData.Pub[i] * πPu[i,t] + probData.Plb[i] * πPl[i,t] for i in probData.IDList) + 
                                 sum(πd[i,t] * xhat[i] for i in NCP)) + 
                                 sum((πWu[br,t] - πWl[br,t]) * probData.Wbar[br[1],br[2]] + (πθu[br,t] - πθl[br,t]) * probData.θdiff[br[1],br[2]] for br in probData.brList) +
-                                sum(sum(qhat[i,j,t] for j in J) * πq[i,t] for i in NCP) for t in T));
+                                sum(sum(qhat[i,j,t] for j in J) * πq[i,t] + sum(probData.cq[i,j] * qhat[i,j,t] for j in J) for i in NCP) for t in T));
 
     # add the constraints
     @constraint(sp, d_constr[i in NCP, t in T], πq[i,t] + πd[i,t] - πP[i,t] <= 0);
@@ -594,7 +596,11 @@ function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1
     @constraint(sp, W_constr[br in probData.brList, t in T], πW[br,t] + πWu[br,t] + πWl[br,t] + πP[br[2],t] - πP[br[1],t] == 0);
     @constraint(sp, P_constr[i in probData.IDList, t in T], πP[i,t] + πPu[i,t] + πPl[i,t] == probData.g[i]);
     
-    return sp;
+    if outputOption == 0
+        return sp;
+    else
+        return sp, qhat;
+    end
 end
 
 function colGen(probData, f, c, xbar, x0, u0, ρ, Delta, ϵ = 1e-4, master_option = "linear", separation_option = "piecewise", time_limit = 3600)
