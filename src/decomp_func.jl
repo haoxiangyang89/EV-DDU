@@ -3,8 +3,8 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    # λbar = 1000 * sum(values(probData.Q));
-    λbar = M;
+    λbar = 100 * sum(values(probData.Q));
+    # λbar = M;
     # build the relaxed master problem here
     mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0, "Threads" => 10));
     @variable(mp, x[i in NCP] >= x0[i]); # charger capacity
@@ -125,8 +125,8 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e4)
     NCP = probData.NCP;
     J = probData.J;
     T = 1:probData.T;
-    # λbar = 10 * sum(values(probData.Q));
-    λbar = M;
+    λbar = 100 * sum(values(probData.Q));
+    # λbar = M;
 
     if k > 1
         # add a new column to the master problem here

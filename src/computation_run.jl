@@ -151,3 +151,7 @@ save("./result/$(caseList[ci])_linear_bilinear.jld", "xhat", xhat_biS, "uhat", u
 # xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_gurobi", 1);
 # xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_gurobi");
 # save("./result/$(caseList[ci])_bilinear_bilinear.jld", "xhat", xhat_biM_biS, "uhat", uhat_biM_biS, "UBList", UBList_biM_biS, "LBList", LBList_biM_biS, "timeList", timeList_biM_biS);
+
+xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_decomp", 1);
+xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_decomp");
+save("./result/$(caseList[ci])_linear_decomp.jld", "xhat", xhat_bid, "uhat", uhat_bid, "UBList", UBList_bid, "LBList", LBList_bid, "timeList", timeList_bid);
