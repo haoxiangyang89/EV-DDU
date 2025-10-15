@@ -128,30 +128,34 @@ end
 probData = DDUdata(fData.IDList, brList, NCP, J, T, D, Pub, Plb, Q, Wbar, r, θdiff, b, g, cq);
 
 # run the column generation algorithm, linear master problem and cut generation separation
-xhat, uhat, UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "piecewise", 1);
-xhat, uhat, UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "piecewise");
+xhat, uhat, UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "piecewise", 1);
+xhat, uhat, UBList, LBList, timeList = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "piecewise");
 save("./result/$(caseList[ci])_linear_piecewise.jld", "xhat", xhat, "uhat", uhat, "UBList", UBList, "LBList", LBList, "timeList", timeList);
 
-# xhat_biM_lS, uhat_biM_lS, UBList_biM_lS, LBList_biM_lS, timeList_biM_lS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "piecewise", 1);
-# xhat_biM_lS, uhat_biM_lS, UBList_biM_lS, LBList_biM_lS, timeList_biM_lS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "piecewise");
+# xhat_biM_lS, uhat_biM_lS, UBList_biM_lS, LBList_biM_lS, timeList_biM_lS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "piecewise", 1);
+# xhat_biM_lS, uhat_biM_lS, UBList_biM_lS, LBList_biM_lS, timeList_biM_lS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "piecewise");
 # save("./result/$(caseList[ci])_bilinear_piecewise.jld", "xhat", xhat_biM_lS, "uhat", uhat_biM_lS, "UBList", UBList_biM_lS, "LBList", LBList_biM_lS, "timeList", timeList_biM_lS);
 
-xhat_loS, uhat_loS, UBList_loS, LBList_loS, timeList_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_local", 1);
-xhat_loS, uhat_loS, UBList_loS, LBList_loS, timeList_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_local");
+xhat_loS, uhat_loS, UBList_loS, LBList_loS, timeList_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_local", 1);
+xhat_loS, uhat_loS, UBList_loS, LBList_loS, timeList_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_local");
 save("./result/$(caseList[ci])_linear_local.jld", "xhat", xhat_loS, "uhat", uhat_loS, "UBList", UBList_loS, "LBList", LBList_loS, "timeList", timeList_loS);
 
-# xhat_biM_loS, uhat_biM_loS, UBList_biM_loS, LBList_biM_loS, timeList_biM_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_local", 1);
-# xhat_biM_loS, uhat_biM_loS, UBList_biM_loS, LBList_biM_loS, timeList_biM_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_local");
+# xhat_biM_loS, uhat_biM_loS, UBList_biM_loS, LBList_biM_loS, timeList_biM_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_local", 1);
+# xhat_biM_loS, uhat_biM_loS, UBList_biM_loS, LBList_biM_loS, timeList_biM_loS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_local");
 # save("./result/$(caseList[ci])_bilinear_local.jld", "xhat", xhat_biM_loS, "uhat", uhat_biM_loS, "UBList", UBList_biM_loS, "LBList", LBList_biM_loS, "timeList", timeList_biM_loS);
 
-xhat_biS, uhat_biS, UBList_biS, LBList_biS, timeList_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_gurobi", 1);
-xhat_biS, uhat_biS, UBList_biS, LBList_biS, timeList_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_gurobi");
+xhat_biS, uhat_biS, UBList_biS, LBList_biS, timeList_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_gurobi", 1);
+xhat_biS, uhat_biS, UBList_biS, LBList_biS, timeList_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_gurobi");
 save("./result/$(caseList[ci])_linear_bilinear.jld", "xhat", xhat_biS, "uhat", uhat_biS, "UBList", UBList_biS, "LBList", LBList_biS, "timeList", timeList_biS);
 
-# xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_gurobi", 1);
-# xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "bilinear", "bilinear_gurobi");
+# xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_gurobi", 1);
+# xhat_biM_biS, uhat_biM_biS, UBList_biM_biS, LBList_biM_biS, timeList_biM_biS = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_gurobi");
 # save("./result/$(caseList[ci])_bilinear_bilinear.jld", "xhat", xhat_biM_biS, "uhat", uhat_biM_biS, "UBList", UBList_biM_biS, "LBList", LBList_biM_biS, "timeList", timeList_biM_biS);
 
-xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_decomp", 1);
-xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-4, "linear", "bilinear_decomp");
+xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_decomp", 1);
+xhat_bid, uhat_bid, UBList_bid, LBList_bid, timeList_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_decomp");
 save("./result/$(caseList[ci])_linear_decomp.jld", "xhat", xhat_bid, "uhat", uhat_bid, "UBList", UBList_bid, "LBList", LBList_bid, "timeList", timeList_bid);
+
+xhat_biM_bid, uhat_biM_bid, UBList_biM_bid, LBList_biM_bid, timeList_biM_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_decomp", 1);
+xhat_biM_bid, uhat_biM_bid, UBList_biM_bid, LBList_biM_bid, timeList_biM_bid = colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "bilinear", "bilinear_decomp");
+save("./result/$(caseList[ci])_bilinear_decomp.jld", "xhat", xhat_biM_bid, "uhat", uhat_biM_bid, "UBList", UBList_biM_bid, "LBList", LBList_biM_bid, "timeList", timeList_biM_bid);

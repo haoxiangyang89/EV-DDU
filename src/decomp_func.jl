@@ -45,8 +45,8 @@ function build_masterproblem(probData, f, c, xbar, x0, u0, Delta, K, πList, M =
                                 for br in probData.brList) for j in J) for t in T), container = SparseAxisArray);
             # add the λ constraints
             @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], λQ[k,j,t] + λu[k,i,j,t] + sum(λqu[k,br[1],br[2],j,t] + λql[k,br[1],br[2],j,t] for br in probData.brList if br[1] == i) - 
-                            sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
-                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
+                            sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
+                                (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
                             container = SparseAxisArray);
 
             # add the λ-u logic constraints
@@ -113,8 +113,8 @@ function build_masterproblem_bilinear(probData, f, c, xbar, x0, u0, Delta, K, π
                             container = SparseAxisArray);
             # add the λ constraints
             @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], λQ[k,j,t] + λu[k,i,j,t] + sum(λqu[k,br[1],br[2],j,t] + λql[k,br[1],br[2],j,t] for br in probData.brList if br[1] == i) - 
-                            sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
-                                (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
+                            sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * λqu[k,br[1],br[2],j,t] + 
+                                (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * λql[k,br[1],br[2],j,t] for br in probData.brList if br[2] == i) >= πitem["q"][i,t] + probData.cq[i,j],
                             container = SparseAxisArray);
         end
     end
@@ -165,8 +165,8 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e4)
             for j in J
                 for t in T
                     mp[:λ_constr][k,i,j,t] = @constraint(mp, mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
-                                sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
+                                sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
+                                    (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
                     # add McCormick envelopes for bilinear terms
                     mp[:uλu_constr1][k,i,j,t] = @constraint(mp, mp[:uλu][k,i,j,t] <= λbar * mp[:u][i]);
                     mp[:uλu_constr2][k,i,j,t] = @constraint(mp, mp[:uλu][k,i,j,t] <= mp[:λu][k,i,j,t]);
@@ -225,8 +225,8 @@ function addCol(mp, probData, Delta, π_add, K, k, M = 1e4)
                         for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)) for j in J) for t in T), container = SparseAxisArray);
         # add the λ constraints
         @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] == i)&(br[1] in NCP)&(br[2] in NCP)) - 
-                        sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
+                        sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
+                            (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
         
         # add the λ-u logic constraints
         @constraint(mp, λqu_logic_constr1[k in K, i in NCP, ip in NCP, j in J, t in T; ((i, ip) in probData.brList)&(i in NCP)&(ip in NCP)], mp[:λqu][k,i,ip,j,t] <= M * mp[:u][i], container = SparseAxisArray);
@@ -292,8 +292,8 @@ function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e4)
             for j in J
                 for t in T
                     mp[:λ_constr][k,i,j,t] = @constraint(mp, mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
-                                sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                                    (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
+                                sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
+                                    (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j]);
                 end
             end
         end
@@ -314,8 +314,8 @@ function addCol_bilinear(mp, probData, Delta, π_add, K, k, M = 1e4)
                         sum(M * (2 - mp[:u][br[1]] - mp[:u][br[2]]) * (mp[:λqu][k,br[1],br[2],j,t] - mp[:λql][k,br[1],br[2],j,t]) for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)) for j in J) for t in T), container = SparseAxisArray);
         # add the λ constraints
         @constraint(mp, λ_constr[k in K, i in NCP, j in J, t in T], mp[:λQ][k,j,t] + mp[:λu][k,i,j,t] + sum(mp[:λqu][k,br[1],br[2],j,t] + mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[1] == i)) - 
-                        sum((probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
-                            (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
+                        sum((probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * mp[:λqu][k,br[1],br[2],j,t] + 
+                            (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * mp[:λql][k,br[1],br[2],j,t] for br in probData.brList if (br[1] in NCP)&(br[2] in NCP)&(br[2] == i)) >= π_add["q"][i,t] + probData.cq[i,j], container = SparseAxisArray);
     end
     return mp;
 end
@@ -358,9 +358,9 @@ function build_separation_local(probData, ρ, Delta, xhat, uhat, M = 1e4)
     @constraint(sp, P_constr[i in probData.IDList, t in T], πP[i,t] + πPu[i,t] + πPl[i,t] == probData.g[i]);
     @constraint(sp, Q_constr[j in J, t in T], sum(q[i,j,t] for i in NCP) == probData.Q[j,t]);
     @constraint(sp, q_constr[i in NCP, j in J, t in T], q[i,j,t] <= probData.Q[j,t] * uhat[i]);
-    @constraint(sp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j,t] <= 
+    @constraint(sp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * q[br[2],j,t] <= 
                         M * (2 - uhat[br[1]] - uhat[br[2]]));
-    @constraint(sp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
+    @constraint(sp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * q[br[2],j,t] >= 
                         -M * (2 - uhat[br[1]] - uhat[br[2]]));
     
     return sp;
@@ -400,9 +400,9 @@ function build_separation_bilinear(probData, ρ, Delta, xhat, uhat, M = 1e4)
     @constraint(sp, P_constr[i in probData.IDList, t in T], πP[i,t] + πPu[i,t] + πPl[i,t] == probData.g[i]);
     @constraint(sp, Q_constr[j in J, t in T], sum(q[i,j,t] for i in NCP) == probData.Q[j,t]);
     @constraint(sp, q_constr[i in NCP, j in J, t in T], q[i,j,t] <= probData.Q[j,t] * uhat[i]);
-    @constraint(sp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j,t] <= 
+    @constraint(sp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * q[br[2],j,t] <= 
                         M * (2 - uhat[br[1]] - uhat[br[2]]));
-    @constraint(sp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
+    @constraint(sp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * q[br[2],j,t] >= 
                         -M * (2 - uhat[br[1]] - uhat[br[2]]));
     
     return sp;
@@ -464,9 +464,9 @@ function build_separation_piecewise_cuts(probData, ρ, Delta, xhat, uhat, M = 1e
             @variable(qp, q[i in NCP, j in J, t in T] >= 0); # EV demand
             @constraint(qp, Q_constr[j in J, t in T], sum(q[i,j,t] for i in NCP) == probData.Q[j,t]);
             @constraint(qp, q_constr[i in NCP, j in J, t in T], q[i,j,t] <= probData.Q[j,t] * uhat[i]);
-            @constraint(qp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j,t] <= 
+            @constraint(qp, qu_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * q[br[2],j,t] <= 
                                 M * (2 - uhat[br[1]] - uhat[br[2]]));
-            @constraint(qp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j,t] >= 
+            @constraint(qp, ql_constr[br in probData.brList, j in J, t in T; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j,t] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * q[br[2],j,t] >= 
                                 -M * (2 - uhat[br[1]] - uhat[br[2]]));
             @objective(qp, Max, sum(sum(sum(q[i,j,t] for j in J) * πqhat[i,t] for i in NCP) for t in T) + sum(sum(sum(probData.cq[i,j] * q[i,j,t] for j in J) for i in NCP) for t in T));
             optimize!(qp);
@@ -556,9 +556,9 @@ function build_separation_bilinear_decomp(probData, ρ, Delta, xhat, uhat, M = 1
         @constraint(spt, P_constr[i in probData.IDList], πP[i] + πPu[i] + πPl[i] == probData.g[i]);
         @constraint(spt, Q_constr[j in J], sum(q[i,j] for i in NCP) == probData.Q[j,t]);
         @constraint(spt, q_constr[i in NCP, j in J], q[i,j] <= probData.Q[j,t] * uhat[i]);
-        @constraint(spt, qu_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 + Delta) * q[br[2],j] <= 
+        @constraint(spt, qu_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 + Delta) * q[br[2],j] <= 
                             M * (2 - uhat[br[1]] - uhat[br[2]]));
-        @constraint(spt, ql_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[2],j]/probData.r[br[1],j]) * (1 - Delta) * q[br[2],j] >= 
+        @constraint(spt, ql_constr[br in probData.brList, j in J; (br[1] in NCP)&(br[2] in NCP)], q[br[1],j] - (probData.r[br[1],j]/probData.r[br[2],j]) * (1 - Delta) * q[br[2],j] >= 
                             -M * (2 - uhat[br[1]] - uhat[br[2]]));
         optimize!(spt);
 
