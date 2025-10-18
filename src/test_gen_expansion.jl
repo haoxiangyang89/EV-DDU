@@ -268,7 +268,7 @@ for Q_perc_ind in eachindex(Q_perc_list)
         probData = DDUdata(fData.IDList, brList, NCP, J, T, D, Pub, Plb, Q, Wbar, r, θdiff, b, g, cq);
         xhat_Q_expansion[Q_perc_ind,expansion_ind], uhat_Q_expansion[Q_perc_ind,expansion_ind], UBList_Q_expansion[Q_perc_ind,expansion_ind], 
             LBList_Q_expansion[Q_perc_ind,expansion_ind], timeList_Q_expansion[Q_perc_ind,expansion_ind] = 
-            colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-3, "linear", "bilinear_decomp");
+            colGen(probData, f, c, xbar, x0, u0, ρ, Delta, 1e-2, "linear", "bilinear_decomp", 7200);
         UB_est_sp, q_worst_Q_expansion[Q_perc_ind,expansion_ind] = build_separation_bilinear_decomp(probData, ρ, Delta, xhat_Q_expansion[Q_perc_ind,expansion_ind], 
             uhat_Q_expansion[Q_perc_ind,expansion_ind], 1e3, 1);
             optimize!(UB_est_sp);
